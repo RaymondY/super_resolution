@@ -4,7 +4,6 @@ from PIL import Image
 import random
 import torch
 from torch.utils.data import Dataset, DataLoader
-
 from config import DefaultConfig
 
 config = DefaultConfig()
@@ -88,3 +87,9 @@ def load_data():
     test_loader = DataLoader(test_data, batch_size=config.batch_size, shuffle=False)
 
     return train_loader, val_loader, test_loader
+
+
+if __name__ == '__main__':
+    load_data()
+
+
