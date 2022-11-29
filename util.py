@@ -31,7 +31,8 @@ class Div2kDataset(Dataset):
         lr = transforms.ToTensor()(lr)
         hr = transforms.ToTensor()(hr)
 
-        if self.mean:
+        # if there is property self.mean, then normalize the image
+        if hasattr(self, "mean"):
             lr = transforms.Normalize(self.mean, self.std)(lr)
             hr = transforms.Normalize(self.mean, self.std)(hr)
         else:
@@ -82,11 +83,13 @@ def load_train_val_data():
     return train_loader, val_loader
 
 
-def visualize_lr_hr(lr, hr):
+def visualize_lr_hr_sr(lr, hr, sr):
     lr = transforms.ToPILImage()(lr)
     hr = transforms.ToPILImage()(hr)
+    sr = transforms.ToPILImage()(sr)
     lr.show()
     hr.show()
+    sr.show()
 
 
 def compute_psnr(img1, img2):
@@ -95,4 +98,3 @@ def compute_psnr(img1, img2):
 
 def compute_ssim(img1, img2):
     return kornia_ssim(img1, img2, window_size=11, max_val=1.)
-
