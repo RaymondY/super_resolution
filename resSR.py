@@ -31,11 +31,12 @@ class ResidualBlock(nn.Module):
         self.relu = nn.ReLU(inplace=True)
 
     def forward(self, x):
-        residual = x
-        x = self.conv1(x)
-        x = self.conv2(x)
-        x = self.conv3(x)
-        x = self.relu(x + residual)
+        res = x
+        res = self.conv1(res)
+        res = self.conv2(res)
+        res = self.conv3(res)
+        x = x + res
+        # res = self.relu(res + residual)
         return x
 
 
@@ -48,9 +49,10 @@ class Generator(nn.Module):
         self.conv_input = ConvBlock(3, 64, 3, 1, 1)
         self.residual_blocks = self._make_res_blocks()
         self.conv_output = nn.Sequential(
+            # test conv or not
             ConvBlock(64, 3 * 2, 3, 1, 1),
             nn.PixelShuffle(2),
-            nn.Conv2d(64, 3, 3, 1, 1)
+            nn.Conv2d(64, 3, 3, 1, 1)  # 3
         )
 
     def _make_res_blocks(self):

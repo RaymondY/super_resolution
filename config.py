@@ -20,6 +20,7 @@ class DefaultConfig(object):
     # the path of the model
     model_path = os.path.join(current_path, 'model')
 
+    patch = 96
     max_epoch = 15
     lr = 1e-3
     batch_size = 128
