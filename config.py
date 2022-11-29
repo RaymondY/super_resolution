@@ -18,14 +18,15 @@ class DefaultConfig(object):
     data_path = os.path.join(current_path, 'data')
 
     # the path of the model
-    model_path = os.path.join(current_path, 'model')
+    model_dir = os.path.join(current_path, 'model')
+    model_path = os.path.join(model_dir, f'{datetime.now().strftime("%Y-%m-%d-%H-%M-%S")}.pth')
 
     # data
     patch_size = 96
 
     epoch_num = 20 * 2
-    lr = 1e-3
-    batch_size = 64
+    lr = 0.1
+    batch_size = 32
 
     epsilon = 1e-5
 

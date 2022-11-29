@@ -1,6 +1,7 @@
 import os
 import random
 from PIL import Image
+import matplotlib.pyplot as plt
 import torch
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
@@ -112,12 +113,26 @@ def load_train_val_data():
 
 
 def visualize_lr_hr_sr(lr, hr, sr):
-    lr = transforms.ToPILImage()(lr)
-    hr = transforms.ToPILImage()(hr)
-    sr = transforms.ToPILImage()(sr)
-    lr.show()
-    hr.show()
-    sr.show()
+    # lr, hr, sr are all (C, H, W) normalized tensors
+    # (0.5, 0.5, 0.5), (0.5, 0.5, 0.5)
+    lr = lr * 0.5 + 0.5
+    hr = hr * 0.5 + 0.5
+    sr = sr * 0.5 + 0.5
+
+    transform = transforms.ToPILImage()
+    lr = transform(lr)
+    hr = transform(hr)
+    sr = transform(sr)
+
+    # show the image and set the title
+    fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+    axes[0].imshow(lr)
+    axes[0].set_title("LR")
+    axes[1].imshow(hr)
+    axes[1].set_title("HR")
+    axes[2].imshow(sr)
+    axes[2].set_title("SR")
+    plt.show()
 
 
 def compute_psnr(img1, img2):
