@@ -20,7 +20,12 @@ class DefaultConfig(object):
     # the path of the model
     model_path = os.path.join(current_path, 'model')
 
-    epoch_num = 30
-    lr = 1e-4
-    batch_size = 100
+    # data
+    patch_size = 96
+
+    epoch_num = 20 * 2
+    lr = 1e-3
+    batch_size = 64
+
+    epsilon = 1e-5
 

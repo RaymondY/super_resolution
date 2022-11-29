@@ -1,4 +1,5 @@
 import os
+import random
 from PIL import Image
 import torch
 from torch.utils.data import Dataset, DataLoader
@@ -11,18 +12,46 @@ config = DefaultConfig()
 
 
 class Div2kDataset(Dataset):
-    def __init__(self, lr_path, hr_path, mean=None, std=None):
+    def __init__(self, lr_path, hr_path, mean=None, std=None, val_status=0, scale=2):
         super().__init__()
         self.lr_path = lr_path
         self.hr_path = hr_path
         self.lr_list = os.listdir(self.lr_path)
         self.hr_list = os.listdir(self.hr_path)
+        # sort the list by the name of the file
+        self.lr_list.sort()
+        self.hr_list.sort()
+        self.scale = scale
+        # val_status: 0 w.o val, 1 w. val and return train data, 2 for val and return val data
+        if val_status == 1:
+            self.lr_list = self.lr_list[:550]
+            self.hr_list = self.hr_list[:550]
+        elif val_status == 2:
+            self.lr_list = self.lr_list[550:]
+            self.hr_list = self.hr_list[550:]
         if mean:
             self.mean = mean
             self.std = std
 
     def __len__(self):
         return len(self.lr_list)
+
+    # # keep the center of the lr image and hr image as the same
+    def get_random_patch(self, lr, hr):
+        # lr and hr are both (C, H, W) tensors
+        lr_height, lr_width = lr.shape[1:]
+        lr_patch_size = config.patch_size
+        hr_patch_size = self.scale * lr_patch_size
+        # [0, lr_height - config.patch_size]
+        lr_y = random.randint(0, lr_height - lr_patch_size)
+        # [0, lr_width - config.patch_size]
+        lr_x = random.randint(0, lr_width - lr_patch_size)
+        hr_y, hr_x = lr_y * self.scale, lr_x * self.scale
+
+        lr_patch = lr[:, lr_y:lr_y + lr_patch_size, lr_x:lr_x + lr_patch_size]
+        hr_patch = hr[:, hr_y:hr_y + hr_patch_size, hr_x:hr_x + hr_patch_size]
+
+        return lr_patch, hr_patch
 
     def __getitem__(self, index):
         lr = Image.open(os.path.join(self.lr_path, self.lr_list[index]))
@@ -39,6 +68,8 @@ class Div2kDataset(Dataset):
             # normalize to [-1, 1]
             lr = transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))(lr)
             hr = transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))(hr)
+
+        lr, hr = self.get_random_patch(lr, hr)
 
         return lr, hr
 
@@ -62,23 +93,20 @@ def load_data():
     train_dataset = Div2kDataset(config.train_val_lr_path, config.train_val_hr_path)
     test_dataset = Div2kDataset(config.test_lr_path, config.test_hr_path)
 
-    train_loader = DataLoader(train_dataset, batch_size=config.batch_size, shuffle=True)
-    test_loader = DataLoader(test_dataset, batch_size=config.batch_size, shuffle=True)
+    train_loader = DataLoader(train_dataset, batch_size=config.batch_size,
+                              shuffle=True, pin_memory=True, drop_last=True)
+    test_loader = DataLoader(test_dataset, batch_size=config.batch_size, pin_memory=True)
 
     return train_loader, test_loader
 
 
 def load_train_val_data():
-    all_train_dataset = Div2kDataset(config.train_val_lr_path, config.train_val_hr_path)
-    train_dataset, val_dataset = torch.utils.data.random_split(all_train_dataset, [550, 250])
+    train_dataset = Div2kDataset(config.train_val_lr_path, config.train_val_hr_path, val_status=1)
+    val_dataset = Div2kDataset(config.train_val_lr_path, config.train_val_hr_path, val_status=2)
 
-    # lr_mean, hr_mean, lr_std, hr_std = get_mean_std(train_dataset)
-    # temp_dataset = Div2kDataset(config.train_val_lr_path, config.train_val_hr_path,
-    #                             lr_mean, lr_std)
-    # train_dataset, val_dataset = torch.utils.data.random_split(temp_dataset, [550, 250])
-
-    train_loader = DataLoader(train_dataset, batch_size=config.batch_size, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=config.batch_size, shuffle=True)
+    train_loader = DataLoader(train_dataset, batch_size=config.batch_size,
+                              shuffle=True, pin_memory=True, drop_last=True)
+    val_loader = DataLoader(val_dataset, batch_size=config.batch_size, shuffle=True, pin_memory=True)
 
     return train_loader, val_loader
 
@@ -97,4 +125,5 @@ def compute_psnr(img1, img2):
 
 
 def compute_ssim(img1, img2):
-    return kornia_ssim(img1, img2, window_size=11, max_val=1.)
+    ssim_map = kornia_ssim(img1, img2, window_size=11, max_val=1.)
+    return ssim_map.mean()
