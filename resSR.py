@@ -66,11 +66,3 @@ class Generator(nn.Module):
         x = self.conv_output(x)
         hr = x + lr
         return hr
-
-
-
-
-
-
-
-
