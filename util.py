@@ -1,95 +1,80 @@
-import numpy as np
-from datasets import load_dataset
+import os
 from PIL import Image
-import random
 import torch
 from torch.utils.data import Dataset, DataLoader
+from torchvision import transforms
 from config import DefaultConfig
 
 config = DefaultConfig()
 
 
 class Div2kDataset(Dataset):
-    def __init__(self, image_pairs, lr_mu, lr_std, hr_mu, hr_std):
-        self.data = image_pairs
-        self.lr_mu = lr_mu
-        self.lr_std = lr_std
-        self.hr_mu = hr_mu
-        self.hr_std = hr_std
+    def __init__(self, lr_path, hr_path, mean=None, std=None):
+        super().__init__()
+        self.lr_path = lr_path
+        self.hr_path = hr_path
+        self.lr_list = os.listdir(self.lr_path)
+        self.hr_list = os.listdir(self.hr_path)
+        if mean:
+            self.mean = mean
+            self.std = std
 
     def __len__(self):
-        return len(self.data)
+        return len(self.lr_list)
 
     def __getitem__(self, index):
-        image_pair = self.data[index]
-        lr_image = np.array(Image.open(image_pair['lr']).convert("RGB"))
-        hr_image = np.array(Image.open(image_pair['hr']).convert("RGB"))
+        lr = Image.open(os.path.join(self.lr_path, self.lr_list[index]))
+        hr = Image.open(os.path.join(self.hr_path, self.hr_list[index]))
+        # (C, H, W)
+        lr = transforms.ToTensor()(lr)
+        hr = transforms.ToTensor()(hr)
 
-        # normalize
-        lr_image = (lr_image - self.lr_mu) / self.lr_std
-        hr_image = (hr_image - self.hr_mu) / self.hr_std
+        if self.mean:
+            lr = transforms.Normalize(self.mean, self.std)(lr)
+            hr = transforms.Normalize(self.mean, self.std)(hr)
 
-        lr_image = lr_image / 255
-        hr_image = hr_image / 255
-
-        # to tensor
-        lr_image = torch.from_numpy(lr_image)
-        hr_image = torch.from_numpy(hr_image)
-
-        return lr_image, hr_image
+        return lr, hr
 
 
-def get_mu_std(train_data):
-    lr_mu = 0
-    lr_std = 0
-    hr_mu = 0
-    hr_std = 0
-    for i in range(len(train_data)):
-        lr_image = np.array(Image.open(train_data[i]['lr']).convert("RGB"))
-        hr_image = np.array(Image.open(train_data[i]['hr']).convert("RGB"))
-        lr_mu += lr_image.mean()
-        lr_std += lr_image.std()
-        hr_mu += hr_image.mean()
-        hr_std += hr_image.std()
-    lr_mu /= len(train_data)
-    lr_std /= len(train_data)
-    hr_mu /= len(train_data)
-    hr_std /= len(train_data)
-    return lr_mu, lr_std, hr_mu, hr_std
+def get_mean_std(train_dataset):
+    lr_list = []
+    hr_list = []
+    for i in range(len(train_dataset)):
+        lr_list.append(train_dataset[i][0])
+        hr_list.append(train_dataset[i][1])
+    lr_torch = torch.stack(lr_list, dim=0)
+    hr_torch = torch.stack(hr_list, dim=0)
+    lr_mean = lr_torch.mean(dim=(0, 2, 3))
+    lr_std = lr_torch.std(dim=(0, 2, 3))
+    hr_mean = hr_torch.mean(dim=(0, 2, 3))
+    hr_std = hr_torch.std(dim=(0, 2, 3))
+    return lr_mean, hr_mean, lr_std, hr_std
 
 
 def load_data():
-    dataset = load_dataset('eugenesiow/Div2k', 'bicubic_x2')
-    temp_data = dataset['train']
-    # since the test data is unavailable, we consider the validation set as the new test set
-    test_data = dataset['validation']
+    all_train_dataset = Div2kDataset(config.train_val_lr_path, config.train_val_hr_path)
+    lr_mean, hr_mean, lr_std, hr_std = get_mean_std(all_train_dataset)
+    train_dataset = Div2kDataset(config.train_val_lr_path, config.train_val_hr_path,
+                                 lr_mean, lr_std)
+    test_dataset = Div2kDataset(config.test_lr_path, config.test_hr_path,
+                                lr_mean, lr_std)
 
-    # randomly select 250 samples from the training set as the new validation set
-    random.seed(config.seed)
-    random.shuffle(temp_data)
-    val_data = temp_data[:250]
-    train_data = temp_data[250:]
+    train_loader = DataLoader(train_dataset, batch_size=config.batch_size, shuffle=True)
+    test_loader = DataLoader(test_dataset, batch_size=config.batch_size, shuffle=True)
 
-    # data has "lr" and "hr" keys
-    # RGB images are 3 channels
-    # normalize the images based on the mean and std of the training set
-    lr_mu, lr_std, hr_mu, hr_std = get_mu_std(train_data)
-    train_data = Div2kDataset(train_data, lr_mu, lr_std, hr_mu, hr_std)
-    val_data = Div2kDataset(val_data, lr_mu, lr_std, hr_mu, hr_std)
-    test_data = Div2kDataset(test_data, lr_mu, lr_std, hr_mu, hr_std)
-
-    # *************************************
-    # random_patch? scale? crop?
-    # *************************************
-
-    train_loader = DataLoader(train_data, batch_size=config.batch_size, shuffle=True)
-    val_loader = DataLoader(val_data, batch_size=config.batch_size, shuffle=False)
-    test_loader = DataLoader(test_data, batch_size=config.batch_size, shuffle=False)
-
-    return train_loader, val_loader, test_loader
+    return train_loader, test_loader
 
 
-if __name__ == '__main__':
-    load_data()
+def load_train_val_data():
+    all_train_dataset = Div2kDataset(config.train_val_lr_path, config.train_val_hr_path)
+    train_dataset, val_dataset = torch.utils.data.random_split(all_train_dataset, [550, 250])
 
+    lr_mean, hr_mean, lr_std, hr_std = get_mean_std(train_dataset)
+    temp_dataset = Div2kDataset(config.train_val_lr_path, config.train_val_hr_path,
+                                lr_mean, lr_std)
+    train_dataset, val_dataset = torch.utils.data.random_split(temp_dataset, [550, 250])
 
+    train_loader = DataLoader(train_dataset, batch_size=config.batch_size, shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=config.batch_size, shuffle=True)
+
+    return train_loader, val_loader
