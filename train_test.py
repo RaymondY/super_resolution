@@ -10,10 +10,10 @@ config = DefaultConfig()
 
 def train(train_loader, test_loader, model):
     device = config.device
-    # optimizer = optim.Adam(model.parameters(), lr=config.lr)
-    # scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=30, gamma=0.1)
-    optimizer = optim.SGD(model.parameters(), lr=config.lr, momentum=0.9)
-    scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[3, 10, 30, 50], gamma=0.1)
+    optimizer = optim.Adam(model.parameters(), lr=config.lr)
+    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.5)
+    # optimizer = optim.SGD(model.parameters(), lr=config.lr, momentum=0.9)
+    # scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[3, 10, 30, 50], gamma=0.1)
 
     # use l1 loss
     criterion = nn.L1Loss()

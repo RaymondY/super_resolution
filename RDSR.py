@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import torchvision
 from config import DefaultConfig
 
@@ -72,13 +73,17 @@ class RDSR(nn.Module):
         self.res_dense_blocks = self._make_res_dense_blocks(block_num, feature_num, grow_num,
                                                             kernel_size, stride, padding)
         self.res_dense_output = ConvBlock(feature_num, feature_num, kernel_size, stride, padding, has_act=False)
+        # self.conv_output = nn.Sequential(
+        #     # (feature_num, H, W) -> (feature_num // 4, H * 2, W * 2)
+        #     nn.PixelShuffle(2),
+        #     ConvBlock(feature_num // 4, feature_num // 4, kernel_size, stride, padding),
+        #     ConvBlock(feature_num // 4, feature_num // 4, kernel_size, stride, padding),
+        #     ConvBlock(feature_num // 4, 3, kernel_size, stride, padding, has_act=False)
+        # )
         self.conv_output = nn.Sequential(
-            # (feature_num, H, W) -> (feature_num // 4, H * 2, W * 2)
-            nn.PixelShuffle(2),
-            # nn.ReLU(inplace=True),
-            nn.LeakyReLU(negative_slope=0.2, inplace=True),
-            ConvBlock(feature_num // 4, feature_num // 4, kernel_size, stride, padding),
-            ConvBlock(feature_num // 4, 3, kernel_size, stride, padding, has_act=False)
+            ConvBlock(feature_num, feature_num, kernel_size, stride, padding),
+            ConvBlock(feature_num, feature_num, kernel_size, stride, padding),
+            ConvBlock(feature_num, 3, kernel_size, stride, padding, has_act=False)
         )
 
     @staticmethod
@@ -94,6 +99,7 @@ class RDSR(nn.Module):
         res = self.res_dense_blocks(x)
         res = self.res_dense_output(res)
         x = x + res
+        x = F.interpolate(x, scale_factor=2, mode='nearest')
         hr = self.conv_output(x)
 
         return hr
