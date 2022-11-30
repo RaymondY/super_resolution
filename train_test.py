@@ -10,10 +10,12 @@ config = DefaultConfig()
 
 def train(train_loader, test_loader, model):
     device = config.device
-    optimizer = optim.Adam(model.parameters(), lr=config.lr)
-    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.5)
-    # optimizer = optim.SGD(model.parameters(), lr=config.lr, momentum=0.9)
-    # scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[3, 10, 30, 50], gamma=0.1)
+    # optimizer = optim.Adam(model.parameters(), lr=config.lr)
+    # scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.5)
+    optimizer = optim.SGD(model.parameters(), lr=config.lr, momentum=0.9, weight_decay=3e-5, nesterov=True)
+    # use cosine annealing lr
+    scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=100, eta_min=0, last_epoch=-1)
+    # scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[30, 80], gamma=0.1)
 
     # use l1 loss
     criterion = nn.L1Loss()
@@ -71,6 +73,9 @@ def test(model, test_loader):
                 sr_image = sr_image.cpu()
                 hr_image = hr_image.cpu()
                 visualize_lr_hr_sr(lr_image, hr_image, sr_image)
+
+                # for test***************************
+                return
 
             psnr = compute_psnr(sr_images, hr_images)
             ssim = compute_ssim(sr_images, hr_images)
