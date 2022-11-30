@@ -24,9 +24,9 @@ class DefaultConfig(object):
     # data
     patch_size = 48
 
-    epoch_num = 100
+    epoch_num = 150
     lr = 1e-2
-    batch_size = 64
+    batch_size = 32
 
     # epsilon = 1e-8
 

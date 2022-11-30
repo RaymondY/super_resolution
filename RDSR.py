@@ -88,7 +88,7 @@ class RDSR(nn.Module):
         #                                                 kernel_size, stride, padding)
         self.res_dense_blocks = self._make_res_blocks(block_num, feature_num, feature_num,
                                                       kernel_size, stride, padding)
-        self.res_dense_output = ConvBlock(feature_num, feature_num, kernel_size, stride, padding, has_act=False)
+        self.res_dense_output = ConvBlock(feature_num, feature_num, 1, stride, 0, has_act=False)
         self.conv_output = nn.Sequential(
             # (feature_num, H, W) -> (feature_num // 4, H * 2, W * 2)
             nn.PixelShuffle(2),
@@ -96,7 +96,7 @@ class RDSR(nn.Module):
             ConvBlock(feature_num // 4, feature_num // 4, kernel_size, stride, padding),
             # DenseBlock(feature_num // 4, grow_num, kernel_size, stride, padding),
             # ResBlock(feature_num // 4, feature_num // 4, kernel_size, stride, padding),
-            ConvBlock(feature_num // 4, 3, kernel_size, stride, padding, has_act=False)
+            ConvBlock(feature_num // 4, 3, 1, 1, 0, has_act=False)
         )
         # self.conv_output = nn.Sequential(
         #     ConvBlock(feature_num, feature_num, kernel_size, stride, padding),

@@ -12,9 +12,11 @@ def train(train_loader, test_loader, model):
     device = config.device
     # optimizer = optim.Adam(model.parameters(), lr=config.lr)
     # scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.5)
-    optimizer = optim.SGD(model.parameters(), lr=config.lr, momentum=0.9, weight_decay=3e-5, nesterov=True)
+    optimizer = optim.SGD(model.parameters(), lr=config.lr, momentum=0.9, nesterov=True)
     # use cosine annealing lr
-    scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=100, eta_min=0, last_epoch=-1)
+    # scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=config.epoch_num, eta_min=1e-6, last_epoch=-1)
+    scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=10, T_mult=2,
+                                                               eta_min=0, last_epoch=-1, verbose=True)
     # scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[30, 80], gamma=0.1)
 
     # use l1 loss
