@@ -5,7 +5,7 @@ from datetime import datetime
 
 class DefaultConfig(object):
     # general
-    seed = 0
+    seed = 44
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     device = torch.device("mps" if torch.backends.mps.is_available() else device)
 
@@ -22,11 +22,11 @@ class DefaultConfig(object):
     model_path = os.path.join(model_dir, f'{datetime.now().strftime("%Y-%m-%d-%H-%M-%S")}.pth')
 
     # data
-    patch_size = 96
+    patch_size = 28
 
-    epoch_num = 20 * 2
-    lr = 0.1
+    epoch_num = 60
+    lr = 1e-2
     batch_size = 32
 
-    epsilon = 1e-5
+    # epsilon = 1e-8
 

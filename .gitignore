@@ -4,6 +4,11 @@
 
 # temporary ignore /data
 data/
+!data/.gitkeep
+
+# temporary ignore /model
+model/
+!model/.gitkeep
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
