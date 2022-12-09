@@ -111,24 +111,32 @@ def load_train_val_data():
     return train_loader, val_loader
 
 
-def visualize_lr_hr_sr(lr, hr, sr, is_val=False):
-    # lr, hr, sr: (C, H, W) tensors in range [0, 1]
+def denormalize_lr(image, is_val=False):
     if is_val:
-        lr_mean = torch.tensor([0.4479, 0.4354, 0.4026]).view(3, 1, 1)
-        lr_std = torch.tensor([0.2415, 0.2318, 0.2424]).view(3, 1, 1)
-        hr_mean = torch.tensor([0.4479, 0.4354, 0.4026]).view(3, 1, 1)
-        hr_std = torch.tensor([0.2455, 0.2359, 0.2459]).view(3, 1, 1)
-        lr = lr * lr_std + lr_mean
-        hr = hr * hr_std + hr_mean
-        sr = sr * hr_std + hr_mean
+        lr_mean = torch.tensor([0.4479, 0.4354, 0.4026]).view(3, 1, 1).to(config.device)
+        lr_std = torch.tensor([0.2415, 0.2318, 0.2424]).view(3, 1, 1).to(config.device)
     else:
-        lr_mean = torch.tensor([0.4485, 0.4375, 0.4046]).view(3, 1, 1)
-        lr_std = torch.tensor([0.2397, 0.2290, 0.2389]).view(3, 1, 1)
-        hr_mean = torch.tensor([0.4485, 0.4375, 0.4045]).view(3, 1, 1)
-        hr_std = torch.tensor([0.2436, 0.2330, 0.2424]).view(3, 1, 1)
-        lr = lr * lr_std + lr_mean
-        hr = hr * hr_std + hr_mean
-        sr = sr * hr_std + hr_mean
+        lr_mean = torch.tensor([0.4485, 0.4375, 0.4046]).view(3, 1, 1).to(config.device)
+        lr_std = torch.tensor([0.2397, 0.2290, 0.2389]).view(3, 1, 1).to(config.device)
+    image = image * lr_std + lr_mean
+    return image
+
+
+def denormalize_hr(image, is_val=False):
+    if is_val:
+        hr_mean = torch.tensor([0.4479, 0.4354, 0.4026]).view(3, 1, 1).to(config.device)
+        hr_std = torch.tensor([0.2455, 0.2359, 0.2459]).view(3, 1, 1).to(config.device)
+    else:
+        hr_mean = torch.tensor([0.4485, 0.4375, 0.4045]).view(3, 1, 1).to(config.device)
+        hr_std = torch.tensor([0.2436, 0.2330, 0.2424]).view(3, 1, 1).to(config.device)
+    image = image * hr_std + hr_mean
+    return image
+
+
+def visualize_lr_hr_sr(lr, hr, sr, is_val=False):
+    lr = denormalize_lr(lr, is_val)
+    hr = denormalize_hr(hr, is_val)
+    sr = denormalize_hr(sr, is_val)
 
     transform = transforms.ToPILImage(mode='RGB')
     lr = transform(lr)
@@ -146,13 +154,16 @@ def visualize_lr_hr_sr(lr, hr, sr, is_val=False):
     plt.show()
 
 
-def compute_psnr(img1, img2):
-    return kornia_psnr(img1, img2, max_val=1.)
+def compute_psnr(image1, image2, is_val=False):
+    image1 = denormalize_hr(image1, is_val)
+    image2 = denormalize_hr(image2, is_val)
+    return kornia_psnr(image1, image2, max_val=1.)
 
 
-def compute_ssim(img1, img2):
-    ssim_map = kornia_ssim(img1, img2, window_size=11, max_val=1.)
-    return ssim_map.mean()
+def compute_ssim(image1, image2, is_val=False):
+    image1 = denormalize_hr(image1, is_val)
+    image2 = denormalize_hr(image2, is_val)
+    return kornia_ssim(image1, image2, window_size=11, max_val=1.).mean()
 
 
 if __name__ == '__main__':

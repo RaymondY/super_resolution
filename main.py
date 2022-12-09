@@ -11,7 +11,7 @@ config = DefaultConfig()
 def main():
     # train_loader, test_loader = load_data()
     train_loader, val_loader = load_train_val_data()
-    model = RDSR(block_num=8).to(config.device)
+    model = RDSR(block_num=10).to(config.device)
     train(train_loader, val_loader, model)
     # test(val_loader, model)
 

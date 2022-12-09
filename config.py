@@ -22,11 +22,11 @@ class DefaultConfig(object):
     model_path = os.path.join(model_dir, f'{datetime.now().strftime("%Y-%m-%d-%H-%M-%S")}.pth')
 
     # data
-    patch_size = 48
+    patch_size = 64
 
-    epoch_num = 150
-    lr = 1e-2
-    batch_size = 32
+    epoch_num = 100
+    lr = 2e-4
+    batch_size = 16
 
-    # epsilon = 1e-8
+    epsilon = 1e-8
 
