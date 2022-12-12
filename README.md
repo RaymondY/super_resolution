@@ -3,7 +3,7 @@ A PyTorch implementation of final project for EE 541
 
 # Environment
 - Python 3.8
-- PyTorch Preview (Nightly) for MPS acceleration is available on MacOS 12.3+
+- PyTorch Preview (Nightly) for MPS acceleration available on MacOS 12.3+
 - PyTorch 1.13.0 (CUDA 10.2) 
 - torchvision 0.14.0
 - tqdm 4.64.1
